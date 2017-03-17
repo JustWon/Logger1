@@ -1,5 +1,11 @@
 #include "main.h"
 
+#include <opencv2/imgproc/imgproc.hpp>
+#include <highgui.h>
+#include <cv.h>
+
+#define unix 1 
+
 int main(int argc, char **argv)
 {
     Logger * logger = new Logger;
@@ -103,7 +109,12 @@ MainWindow::MainWindow(Logger * logger)
     boost::filesystem::path p(logFolder.c_str());
     boost::filesystem::create_directory(p);
 
-    logFile->setText(QString::fromStdString(getNextFilename()));
+    // logFile->setText(QString::fromStdString(getNextFilename()));
+    logFile->setText(QString::fromStdString("test.klg"));
+
+    logger->startWriting(logFile->text().toStdString());
+    startStop->setText("Stop");
+    recording = true;
 }
 
 MainWindow::~MainWindow()

@@ -89,7 +89,7 @@ class ThreadMutexObject
 
         T getValueWait(int wait = 33000)
         {
-            boost::this_thread::sleep(boost::posix_time::microseconds(wait));
+            //boost::this_thread::sleep(boost::posix_time::microseconds(wait));
 
             boost::mutex::scoped_lock lock(mutex);
 
@@ -102,7 +102,7 @@ class ThreadMutexObject
 
         T & getReferenceWait(int wait = 33000)
         {
-            boost::this_thread::sleep(boost::posix_time::microseconds(wait));
+            //boost::this_thread::sleep(boost::posix_time::microseconds(wait));
 
             boost::mutex::scoped_lock lock(mutex);
 

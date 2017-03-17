@@ -6,6 +6,11 @@
  */
 
 #include "Logger.h"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/thread.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <highgui.h>
+#include <cv.h>
 
 Logger::Logger()
  : lastWritten(-1),
@@ -84,7 +89,7 @@ void Logger::setupDevice(const std::string & deviceId)
         if(driver.getNumberDevices() == 0)
         {
             std::cout << "No devices connected.... waiting for devices to be connected" << std::endl;
-            boost::this_thread::sleep(boost::posix_time::seconds(1));
+            //boost::this_thread::sleep(boost::posix_time::seconds(1));
             continue;
         }
 
@@ -118,7 +123,7 @@ void Logger::setupDevice(const std::string & deviceId)
             if(!m_device)
             {
                 std::cout << boost::format("No matching device found.... waiting for devices. Reason: %s") % exception.what() << std::endl;
-				boost::this_thread::sleep(boost::posix_time::seconds(1));
+				//boost::this_thread::sleep(boost::posix_time::seconds(1));
                 continue;
             }
             else
@@ -184,6 +189,13 @@ void Logger::encodeJpeg(cv::Vec<unsigned char, 3> * rgb_data)
     delete img;
 }
 
+int frame = 0 ;
+FILE *fp = NULL;
+char *sandbox_path = 
+"/home/dongwonshin/Documents/rgbd_dataset_freiburg2_metallic_sphere2/rgbd_dataset_freiburg2_metallic_sphere2/";
+char rgb_filename[1024];
+char depth_filename[1024];
+
 void Logger::imageCallback(boost::shared_ptr<openni_wrapper::Image> image, void * cookie)
 {
 	boost::posix_time::ptime time = boost::posix_time::microsec_clock::local_time();
@@ -192,7 +204,34 @@ void Logger::imageCallback(boost::shared_ptr<openni_wrapper::Image> image, void 
 
     int bufferIndex = (latestImageIndex.getValue() + 1) % 10;
 
-    image->fillRGB(image->getWidth(), image->getHeight(), reinterpret_cast<unsigned char*>(imageBuffers[bufferIndex].first), 640 * 3);
+    if (!fp)
+    {
+        char temp[1024];
+        sprintf(temp, "%s%s", sandbox_path, "associate.txt");
+        fp = fopen(temp, "rt");
+    }
+
+    if (feof(fp) != 0)
+    {
+        stopWriting();
+        exit(0);
+    }
+ 
+    fscanf(fp, "%s %s %s %s", rgb_filename,rgb_filename,depth_filename,depth_filename);
+    char rgb_full_path[1024];
+    sprintf(rgb_full_path,"%s%s", sandbox_path,rgb_filename);
+    cv::Mat rgb = cv::imread(rgb_full_path);
+    cv::Mat rgb2 = rgb.clone();
+    for (int i = 0 ; i < 480 ; i++)
+        for (int j = 0 ; j < 640 ; j++)
+        {
+            rgb2.at<cv::Vec3b>(i,j)[0] = rgb.at<cv::Vec3b>(i,j)[2];
+            rgb2.at<cv::Vec3b>(i,j)[2] = rgb.at<cv::Vec3b>(i,j)[0];
+        }
+
+    memcpy(imageBuffers[bufferIndex].first, rgb2.data, 640*480*3);
+
+    // image->fillRGB(image->getWidth(), image->getHeight(), reinterpret_cast<unsigned char*>(imageBuffers[bufferIndex].first), 640 * 3);
 
     imageBuffers[bufferIndex].second = m_lastImageTime;
 
@@ -207,7 +246,12 @@ void Logger::depthCallback(boost::shared_ptr<openni_wrapper::DepthImage> depth_i
     
 	int bufferIndex = (latestDepthIndex.getValue() + 1) % 10;
 
-    depth_image->fillDepthImageRaw(depth_image->getWidth(), depth_image->getHeight(), reinterpret_cast<unsigned short *>(frameBuffers[bufferIndex].first.first), 640 * 2);
+    char depth_full_path[1024];
+    sprintf(depth_full_path,"%s%s",sandbox_path,depth_filename);
+    cv::Mat depth = cv::imread(depth_full_path, CV_LOAD_IMAGE_ANYDEPTH);
+    memcpy(frameBuffers[bufferIndex].first.first, depth.data, 640*480*2);
+    
+    // depth_image->fillDepthImageRaw(depth_image->getWidth(), depth_image->getHeight(), reinterpret_cast<unsigned short *>(frameBuffers[bufferIndex].first.first), 640 * 2);
 
     frameBuffers[bufferIndex].second = m_lastDepthTime;
 
