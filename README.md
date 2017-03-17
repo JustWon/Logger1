@@ -1,7 +1,6 @@
 I modified "Logger1" with RGB-D Dataset input module.
 
 
-=======
 
 Logger1
 =======
